@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Mail, Phone, MapPin, Facebook, Linkedin } from "lucide-react";
 
 export default function Footer() {
@@ -12,8 +13,14 @@ export default function Footer() {
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           {/* Company Info */}
           <div>
-            <Link href="/" className="mb-4 inline-block text-2xl font-bold text-green-500">
-              StockMatch
+            <Link href="/" className="mb-4 inline-block">
+              <Image
+                src="/stockmatch_logo.jpeg"
+                alt="StockMatch"
+                width={160}
+                height={45}
+                className="h-10 w-auto"
+              />
             </Link>
             <p className="mb-4 text-sm text-slate-400">
               Endüstriyel ölü stoklarınızı nakde çevirin. Güvenli ve profesyonel B2B pazar yeri.

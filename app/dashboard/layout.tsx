@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import {
@@ -47,8 +48,14 @@ export default function DashboardLayout({
         <div className="flex h-full flex-col">
           {/* Sidebar Header */}
           <div className="flex h-14 items-center justify-between border-b border-slate-200 px-4 sm:h-16 sm:px-6">
-            <Link href="/" className="text-lg font-bold text-green-500 sm:text-xl">
-              StockMatch
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/stockmatch_logo.jpeg"
+                alt="StockMatch"
+                width={120}
+                height={35}
+                className="h-7 w-auto sm:h-8"
+              />
             </Link>
             <button
               onClick={() => setSidebarOpen(false)}

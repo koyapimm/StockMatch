@@ -266,7 +266,7 @@ export default function Home() {
                 href="/register"
                 className="w-full rounded-lg bg-orange-600 px-6 py-3 text-base font-semibold text-white transition-colors hover:bg-orange-700 sm:w-auto sm:px-8 sm:text-lg"
               >
-                Ücretsiz Üye Ol
+                Üye Ol
               </Link>
               <Link
                 href="#"

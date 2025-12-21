@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import Footer from "@/components/Footer";
@@ -29,8 +30,8 @@ export default function RegisterPage() {
     setUserCompany(formData.companyName);
     setIsLoading(false);
 
-    // Dashboard'a yönlendir
-    router.push("/dashboard");
+    // Anasayfaya yönlendir
+    router.push("/");
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,8 +48,15 @@ export default function RegisterPage() {
         <div className="flex w-full flex-col bg-white lg:w-[40%]">
           <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-8 sm:px-8 sm:py-12">
             {/* Logo */}
-            <Link href="/" className="mb-6 text-xl font-bold text-slate-900 sm:mb-8 sm:text-2xl">
-              StockMatch
+            <Link href="/" className="mb-6 sm:mb-8">
+              <Image
+                src="/stockmatch_logo.jpeg"
+                alt="StockMatch"
+                width={160}
+                height={45}
+                className="h-10 w-auto sm:h-12"
+                priority
+              />
             </Link>
 
             {/* Form Header */}

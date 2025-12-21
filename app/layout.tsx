@@ -16,6 +16,9 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "StockMatch - Endüstriyel Ölü Stok Pazar Yeri",
   description: "Endüstriyel otomasyon ekipmanlarınızı, yedek parçalarınızı ve ölü stoklarınızı diğer şirketlere satın. Güvenli B2B pazar yeri.",
+  icons: {
+    icon: "/stockmatch_logo.ico",
+  },
 };
 
 export default function RootLayout({

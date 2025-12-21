@@ -1,22 +1,29 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ContactModal from "@/components/ContactModal";
+import AuthWarningModal from "@/components/AuthWarningModal";
+import NDAModal from "@/components/NDAModal";
 import ProductCard from "@/components/ProductCard";
 import { mockProducts, Product } from "@/lib/mockData";
+import { useAuth } from "@/contexts/AuthContext";
 import { Star, ArrowRight } from "lucide-react";
 
 export default function ProductDetailPage() {
   const params = useParams();
-  const router = useRouter();
+  const { isLoggedIn } = useAuth();
   const productId = params.id as string;
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"description" | "specs" | "logistics">("description");
+  
+  // 3-Step Security Flow States
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isNDAModalOpen, setIsNDAModalOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [selectedSupplierId, setSelectedSupplierId] = useState("");
 
@@ -63,14 +70,27 @@ export default function ProductDetailPage() {
       .slice(0, 4);
   }, [product]);
 
+  // 3-Step Security Flow Handler
   const handleContactClick = (supplierId: string) => {
     setSelectedSupplierId(supplierId);
+    
+    // Step 1: Check if user is logged in
+    if (!isLoggedIn) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    
+    // Step 2: User is logged in, show NDA modal
+    setIsNDAModalOpen(true);
+  };
+
+  // Handle NDA acceptance - proceed to contact form
+  const handleNDAAccept = () => {
+    setIsNDAModalOpen(false);
+    // Step 3: Open contact form immediately after NDA acceptance
     setIsContactModalOpen(true);
   };
 
-  const handleOfferClick = () => {
-    alert("Teklif başarıyla gönderildi! Satıcı size en kısa sürede dönüş yapacak.");
-  };
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -212,21 +232,13 @@ export default function ProductDetailPage() {
                 </div>
               </div>
 
-              {/* Action Buttons */}
-              <div className="space-y-3">
-                <button
-                  onClick={handleOfferClick}
-                  className="w-full rounded-lg bg-slate-900 py-3 text-lg font-semibold text-white transition-colors hover:bg-slate-800"
-                >
-                  Teklif Ver
-                </button>
-                <button
-                  onClick={() => handleContactClick(supplierId)}
-                  className="w-full rounded-lg border border-slate-300 bg-white py-3 text-lg font-semibold text-slate-900 transition-colors hover:bg-slate-50"
-                >
-                  Satıcıyla İletişime Geç
-                </button>
-              </div>
+              {/* Action Button */}
+              <button
+                onClick={() => handleContactClick(supplierId)}
+                className="w-full rounded-lg bg-slate-900 py-4 text-lg font-semibold text-white transition-colors hover:bg-slate-800"
+              >
+                Satıcıyla İletişime Geç
+              </button>
 
               {/* Part Number */}
               {product.partNumber && (
@@ -406,7 +418,18 @@ export default function ProductDetailPage() {
         )}
       </main>
 
-      {/* Modals */}
+      {/* Modals - 3-Step Security Flow */}
+      <AuthWarningModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
+      
+      <NDAModal
+        isOpen={isNDAModalOpen}
+        onClose={() => setIsNDAModalOpen(false)}
+        onAccept={handleNDAAccept}
+      />
+      
       <ContactModal
         isOpen={isContactModalOpen}
         onClose={() => setIsContactModalOpen(false)}

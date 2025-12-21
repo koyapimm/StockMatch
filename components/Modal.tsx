@@ -7,9 +7,15 @@ type ModalProps = {
   onClose: () => void;
   title: string;
   children: React.ReactNode;
+  size?: "small" | "medium" | "large";
 };
 
-export default function Modal({ isOpen, onClose, title, children }: ModalProps) {
+export default function Modal({ isOpen, onClose, title, children, size = "medium" }: ModalProps) {
+  const sizeClasses = {
+    small: "max-w-md",
+    medium: "max-w-lg",
+    large: "max-w-3xl lg:max-w-4xl",
+  };
   // ESC tuşu ile kapatma
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -34,23 +40,23 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-2 sm:p-4"
       onClick={onClose}
     >
       <div
-        className="relative w-full max-w-md rounded-lg bg-white shadow-xl"
+        className={`relative w-full max-h-[95vh] overflow-hidden rounded-xl bg-white shadow-2xl flex flex-col ${sizeClasses[size]}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 px-6 py-4">
-          <h2 className="text-xl font-bold text-slate-900">{title}</h2>
+        <div className="flex items-center justify-between border-b border-slate-200 px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6 flex-shrink-0">
+          <h2 className="text-lg sm:text-xl lg:text-2xl font-bold text-slate-900 pr-2">{title}</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600"
+            className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 flex-shrink-0"
             aria-label="Close"
           >
             <svg
-              className="h-6 w-6"
+              className="h-5 w-5 sm:h-6 sm:w-6"
               fill="none"
               strokeLinecap="round"
               strokeLinejoin="round"
@@ -63,8 +69,10 @@ export default function Modal({ isOpen, onClose, title, children }: ModalProps) 
           </button>
         </div>
 
-        {/* Content */}
-        <div className="px-6 py-4">{children}</div>
+        {/* Content - Scrollable */}
+        <div className="overflow-y-auto px-4 py-4 sm:px-6 sm:py-5 lg:px-8 lg:py-6 flex-1">
+          {children}
+        </div>
       </div>
     </div>
   );

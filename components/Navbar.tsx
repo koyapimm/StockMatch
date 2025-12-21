@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
 import { Menu, X } from "lucide-react";
 
@@ -15,8 +16,16 @@ export default function Navbar() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <div className="flex items-center gap-4 sm:gap-8">
-            <Link href="/" className="text-lg font-bold text-green-500 sm:text-xl md:text-2xl">
-              StockMatch
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/stockmatch_logo.jpeg"
+                alt="StockMatch"
+                width={140}
+                height={40}
+                className="h-8 w-auto sm:h-10"
+                priority
+              />
+              <p className="text-xl font-bold text-green-500">StockMatch</p>
             </Link>
             {/* Navigation Links - Desktop */}
             <div className="hidden items-center gap-6 md:flex">
