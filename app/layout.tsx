@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { AuthProvider } from "@/contexts/AuthContext";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -13,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Waste2Export - Endüstriyel Ölü Stok Pazar Yeri",
+  title: "StockMatch - Endüstriyel Ölü Stok Pazar Yeri",
   description: "Endüstriyel otomasyon ekipmanlarınızı, yedek parçalarınızı ve ölü stoklarınızı diğer şirketlere satın. Güvenli B2B pazar yeri.",
 };
 
@@ -27,7 +28,7 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );
