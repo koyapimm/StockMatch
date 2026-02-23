@@ -3,9 +3,11 @@
 import Link from "next/link";
 import Image from "next/image";
 import { Mail, Phone, MapPin, Facebook, Linkedin } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const { isLoggedIn } = useAuth();
 
   return (
     <footer className="border-t border-slate-800 bg-slate-900 text-white">
@@ -69,22 +71,36 @@ export default function Footer() {
                   Tüm Ürünler
                 </Link>
               </li>
-              <li>
-                <Link
-                  href="/register"
-                  className="text-sm text-slate-400 transition-colors hover:text-white"
-                >
-                  Üye Ol
-                </Link>
-              </li>
-              <li>
-                <Link
-                  href="/login"
-                  className="text-sm text-slate-400 transition-colors hover:text-white"
-                >
-                  Giriş Yap
-                </Link>
-              </li>
+              {!isLoggedIn && (
+                <>
+                  <li>
+                    <Link
+                      href="/register"
+                      className="text-sm text-slate-400 transition-colors hover:text-white"
+                    >
+                      Üye Ol
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      href="/login"
+                      className="text-sm text-slate-400 transition-colors hover:text-white"
+                    >
+                      Giriş Yap
+                    </Link>
+                  </li>
+                </>
+              )}
+              {isLoggedIn && (
+                <li>
+                  <Link
+                    href="/dashboard"
+                    className="text-sm text-slate-400 transition-colors hover:text-white"
+                  >
+                    Kontrol Paneli
+                  </Link>
+                </li>
+              )}
               <li>
                 <a
                   href="#"
@@ -101,20 +117,20 @@ export default function Footer() {
             <h3 className="mb-4 font-semibold text-white">Yasal</h3>
             <ul className="space-y-2">
               <li>
-                <a
-                  href="#"
+                <Link
+                  href="/terms"
                   className="text-sm text-slate-400 transition-colors hover:text-white"
                 >
                   Kullanım Şartları
-                </a>
+                </Link>
               </li>
               <li>
-                <a
-                  href="#"
+                <Link
+                  href="/privacy"
                   className="text-sm text-slate-400 transition-colors hover:text-white"
                 >
                   Gizlilik Politikası
-                </a>
+                </Link>
               </li>
               <li>
                 <a
@@ -186,4 +202,3 @@ export default function Footer() {
     </footer>
   );
 }
-

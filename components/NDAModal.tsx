@@ -18,13 +18,13 @@ export default function NDAModal({
 
   const handleAccept = () => {
     if (isAgreed) {
-      setIsAgreed(false); // Reset for next time
+      setIsAgreed(false);
       onAccept();
     }
   };
 
   const handleClose = () => {
-    setIsAgreed(false); // Reset checkbox on close
+    setIsAgreed(false);
     onClose();
   };
 
@@ -135,4 +135,3 @@ export default function NDAModal({
     </Modal>
   );
 }
-

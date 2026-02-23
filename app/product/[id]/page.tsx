@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useParams } from "next/navigation";
+import { useState, useEffect, use } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import Navbar from "@/components/Navbar";
@@ -10,304 +9,313 @@ import ContactModal from "@/components/ContactModal";
 import AuthWarningModal from "@/components/AuthWarningModal";
 import NDAModal from "@/components/NDAModal";
 import ProductCard from "@/components/ProductCard";
-import { mockProducts, Product } from "@/lib/mockData";
+import { productApi, ProductDto, getApiImageUrl } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
-import { Star, ArrowRight } from "lucide-react";
+import { useToast } from "@/contexts/ToastContext";
+import { ArrowRight } from "lucide-react";
 
-export default function ProductDetailPage() {
-  const params = useParams();
-  const { isLoggedIn } = useAuth();
-  const productId = params.id as string;
+const COMPANY_APPROVED = 3; // verificationStatus değeri
+
+export default function ProductDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const productId = parseInt(resolvedParams.id, 10);
+  const { isLoggedIn, company } = useAuth();
+  const { showToast } = useToast();
+  
+  const [product, setProduct] = useState<ProductDto | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<ProductDto[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [activeTab, setActiveTab] = useState<"description" | "specs" | "logistics">("description");
   
-  // 3-Step Security Flow States
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isNDAModalOpen, setIsNDAModalOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
-  const [selectedSupplierId, setSelectedSupplierId] = useState("");
 
-  // Find product by ID
-  const product = mockProducts.find((p) => p.id === productId);
+  useEffect(() => {
+    if (isNaN(productId) || productId < 1) {
+      setIsLoading(false);
+      setProduct(null);
+      return;
+    }
 
-  // If product not found, show 404
+    const fetchProduct = async () => {
+      setIsLoading(true);
+      try {
+        const response = await productApi.getById(productId);
+        if (response.success && response.product) {
+          setProduct(response.product);
+
+          const similarResponse = await productApi.search({
+            categoryId: response.product.categoryId,
+            pageSize: 4,
+          });
+          if (similarResponse.success) {
+            setSimilarProducts(
+              similarResponse.products.filter((p) => p.id !== productId).slice(0, 4)
+            );
+          }
+        } else {
+          setProduct(null);
+        }
+      } catch (err) {
+        showToast(err instanceof Error ? err.message : "Ürün yüklenirken bir hata oluştu.", "error");
+        setProduct(null);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProduct();
+  }, [productId, showToast]);
+
+  const handleContactClick = () => {
+    if (!isLoggedIn) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    if (!company) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    if (company.verificationStatus !== COMPANY_APPROVED) {
+      showToast("İletişim talebi göndermek için firmanızın onaylanmış olması gerekiyor.", "error");
+      return;
+    }
+    setIsNDAModalOpen(true);
+  };
+
+  const handleNDAAccept = () => {
+    setIsNDAModalOpen(false);
+    setIsContactModalOpen(true);
+  };
+
+  const getConditionBadgeClass = (condition: string) => {
+    const c = condition.toLowerCase();
+    if (c.includes("sıfır") && c.includes("kapalı")) return "bg-green-100 text-green-800";
+    if (c.includes("sıfır") && c.includes("açık")) return "bg-emerald-100 text-emerald-800";
+    if (c.includes("yeni gibi")) return "bg-blue-100 text-blue-800";
+    if (c.includes("yenilenmiş")) return "bg-orange-100 text-orange-800";
+    if (c.includes("ikinci el")) return "bg-gray-100 text-gray-800";
+    return "bg-red-100 text-red-800";
+  };
+
+  const getCurrencySymbol = (currency: string) => {
+    switch (currency) {
+      case "USD": return "$";
+      case "EUR": return "€";
+      default: return "₺";
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col bg-slate-50">
+        <Navbar />
+        <main className="flex flex-1 items-center justify-center px-4 py-16">
+          <div className="flex flex-col items-center gap-4">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
+            <p className="text-sm text-slate-600">Ürün yükleniyor...</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    );
+  }
+
   if (!product) {
     return (
-      <div className="min-h-screen bg-slate-50">
+      <div className="flex min-h-screen flex-col bg-slate-50">
         <Navbar />
-        <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="mb-4 text-4xl font-bold text-slate-900">Ürün Bulunamadı</h1>
-          <p className="mb-8 text-slate-600">Aradığınız ürün mevcut değil.</p>
+        <main className="flex flex-1 flex-col items-center justify-center px-4 py-16">
+          <h1 className="mb-4 text-2xl font-bold text-slate-900 sm:text-4xl">Ürün Bulunamadı</h1>
+          <p className="mb-8 text-slate-600">Aradığınız ürün mevcut değil veya kaldırılmış olabilir.</p>
           <Link
             href="/products"
             className="inline-block rounded-lg bg-slate-900 px-6 py-3 font-semibold text-white transition-colors hover:bg-slate-800"
           >
             Tüm Ürünlere Dön
           </Link>
-        </div>
+        </main>
+        <Footer />
       </div>
     );
   }
 
-  // Masked seller badge helper
-  const getMaskedSellerBadge = (sellerName: string): string => {
-    const hash = sellerName
-      .split("")
-      .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return `Supplier #${hash.toString().slice(-4)}`;
-  };
+  const imageUrls = product.images && product.images.length > 0
+    ? [...product.images]
+        .sort((a, b) => (a.isPrimary ? -1 : b.isPrimary ? 1 : (a.displayOrder || 0) - (b.displayOrder || 0)))
+        .map((img) => getApiImageUrl(img.imageUrl))
+    : ["/placeholder-product.jpg"];
 
-  const maskedSeller = getMaskedSellerBadge(product.sellerName);
-  const supplierId = maskedSeller.replace("Supplier #", "");
-
-  // Generate thumbnail images (using same image for demo, in real app would have multiple)
-  const imageUrls = [product.imageUrl, product.imageUrl, product.imageUrl, product.imageUrl];
-
-  // Get similar products (same category, exclude current product)
-  const similarProducts = useMemo(() => {
-    return mockProducts
-      .filter((p) => p.category === product.category && p.id !== product.id)
-      .slice(0, 4);
-  }, [product]);
-
-  // 3-Step Security Flow Handler
-  const handleContactClick = (supplierId: string) => {
-    setSelectedSupplierId(supplierId);
-    
-    // Step 1: Check if user is logged in
-    if (!isLoggedIn) {
-      setIsAuthModalOpen(true);
-      return;
-    }
-    
-    // Step 2: User is logged in, show NDA modal
-    setIsNDAModalOpen(true);
-  };
-
-  // Handle NDA acceptance - proceed to contact form
-  const handleNDAAccept = () => {
-    setIsNDAModalOpen(false);
-    // Step 3: Open contact form immediately after NDA acceptance
-    setIsContactModalOpen(true);
-  };
-
+  const hasMultipleImages = imageUrls.length > 1;
+  const goToPrev = () => setSelectedImageIndex((i) => (i === 0 ? imageUrls.length - 1 : i - 1));
+  const goToNext = () => setSelectedImageIndex((i) => (i === imageUrls.length - 1 ? 0 : i + 1));
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen overflow-x-hidden bg-slate-50">
       <Navbar />
 
       <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
-        <div className="mb-6 flex items-center gap-2 text-sm text-slate-600">
-          <Link href="/" className="hover:text-slate-900">
-            Ana Sayfa
-          </Link>
+        <div className="mb-6 flex min-w-0 flex-wrap items-center gap-2 text-sm text-slate-600">
+          <Link href="/" className="hover:text-slate-900">Ana Sayfa</Link>
           <span>/</span>
-          <Link href="/products" className="hover:text-slate-900">
-            Ürünler
-          </Link>
+          <Link href="/products" className="hover:text-slate-900">Ürünler</Link>
           <span>/</span>
           <span className="text-slate-900">{product.title}</span>
         </div>
 
-        {/* Main Content - 2 Column Layout */}
-        <div className="mb-12 grid gap-8 lg:grid-cols-2">
-          {/* Left Column - Images */}
-          <div>
-            {/* Main Image */}
-            <div className="relative mb-4 aspect-[4/3] w-full overflow-hidden rounded-xl border border-slate-200 bg-white">
+        {/* Main Content */}
+        <div className="mb-12 grid min-w-0 gap-8 lg:grid-cols-2">
+          {/* Left - Görsel Galerisi (10 fotoğrafa kadar) */}
+          <div className="min-w-0 space-y-4">
+            <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
               <Image
                 src={imageUrls[selectedImageIndex]}
-                alt={product.title}
+                alt={`${product.title} - Görsel ${selectedImageIndex + 1}`}
                 fill
-                className="object-cover"
+                className="object-contain"
                 unoptimized
+                priority
+                sizes="(max-width: 1024px) 100vw, 50vw"
               />
-              {/* Condition Badge */}
               <div className="absolute left-4 top-4">
-                <span
-                  className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                    product.condition === "Sıfır (Kapalı Kutu)"
-                      ? "bg-green-100 text-green-800"
-                      : product.condition === "Sıfır (Açık Kutu)"
-                      ? "bg-emerald-100 text-emerald-800"
-                      : product.condition === "Yeni Gibi"
-                      ? "bg-blue-100 text-blue-800"
-                      : product.condition === "Yenilenmiş"
-                      ? "bg-orange-100 text-orange-800"
-                      : product.condition === "İkinci El (Temiz)"
-                      ? "bg-gray-100 text-gray-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getConditionBadgeClass(product.condition)}`}>
                   {product.condition}
                 </span>
               </div>
+              {hasMultipleImages && (
+                <>
+                  <button
+                    type="button"
+                    onClick={goToPrev}
+                    className="absolute left-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-md transition-colors hover:bg-white"
+                    aria-label="Önceki görsel"
+                  >
+                    <ArrowRight className="h-5 w-5 -rotate-180 text-slate-900" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={goToNext}
+                    className="absolute right-3 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 shadow-md transition-colors hover:bg-white"
+                    aria-label="Sonraki görsel"
+                  >
+                    <ArrowRight className="h-5 w-5 text-slate-900" />
+                  </button>
+                  <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/50 px-3 py-1 text-xs font-medium text-white">
+                    {selectedImageIndex + 1} / {imageUrls.length}
+                  </div>
+                </>
+              )}
             </div>
 
-            {/* Thumbnails */}
-            <div className="grid grid-cols-4 gap-3">
-              {imageUrls.slice(0, 4).map((url, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedImageIndex(index)}
-                  className={`relative aspect-square w-full overflow-hidden rounded-lg border-2 transition-all ${
-                    selectedImageIndex === index
-                      ? "border-slate-900"
-                      : "border-slate-200 hover:border-slate-400"
-                  }`}
-                >
-                  <Image
-                    src={url}
-                    alt={`${product.title} - Görsel ${index + 1}`}
-                    fill
-                    className="object-cover"
-                    unoptimized
-                  />
-                </button>
-              ))}
-            </div>
+            {hasMultipleImages && (
+              <div className="-mx-1 flex min-w-0 gap-2 overflow-x-auto px-1 pb-2">
+                {imageUrls.map((url, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setSelectedImageIndex(index)}
+                    className={`relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border-2 transition-all ${
+                      selectedImageIndex === index ? "border-slate-900 ring-2 ring-slate-900/30" : "border-slate-200 hover:border-slate-400"
+                    }`}
+                  >
+                    <Image
+                      src={url}
+                      alt={`${product.title} - Görsel ${index + 1}`}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                      sizes="80px"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Right Column - Sticky Action Card */}
-          <div className="lg:sticky lg:top-24 lg:h-fit">
-            <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
-              {/* Title */}
-              <h1 className="mb-4 text-3xl font-bold text-slate-900 sm:text-4xl">
-                {product.title}
-              </h1>
+          {/* Right - Info Card */}
+          <div className="min-w-0 lg:sticky lg:top-24 lg:h-fit">
+            <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h1 className="mb-4 break-words text-3xl font-bold text-slate-900 sm:text-4xl">{product.title}</h1>
 
-              {/* Brand & Category */}
-              <div className="mb-6 flex items-center gap-2 text-sm text-slate-600">
-                <span className="font-semibold">{product.brand}</span>
+              <div className="mb-6 flex min-w-0 flex-wrap items-center gap-2 text-sm text-slate-600">
+                <span className="font-semibold">{product.brand || "Marka Belirtilmemiş"}</span>
                 <span>•</span>
-                <span>{product.subCategory}</span>
-                {product.series && (
+                <span>{product.categoryName}</span>
+                {product.model && (
                   <>
                     <span>•</span>
-                    <span>{product.series}</span>
+                    <span>{product.model}</span>
                   </>
                 )}
               </div>
 
-              {/* Price Section */}
               <div className="mb-6 border-b border-slate-200 pb-6">
                 <div className="mb-2 text-sm text-slate-600">Birim Fiyat</div>
-                <div className="text-4xl font-bold text-slate-900 sm:text-5xl">
-                  {product.currency === "USD" ? "$" : "₺"}
-                  {product.price.toLocaleString()}
+                <div className="break-words text-4xl font-bold text-slate-900 sm:text-5xl">
+                  {getCurrencySymbol(product.currency)}
+                  {product.unitPrice.toLocaleString()}
                 </div>
               </div>
 
-              {/* Stock Info */}
               <div className="mb-6 rounded-lg bg-slate-100 p-4">
-                <div className="flex items-center justify-between text-sm">
+                <div className="flex justify-between text-sm">
                   <span className="text-slate-600">Mevcut Stok:</span>
-                  <span className="font-semibold text-slate-900">
-                    {product.stock} Adet
-                  </span>
+                  <span className="font-semibold text-slate-900">{product.quantity} Adet</span>
                 </div>
-                <div className="mt-2 flex items-center justify-between text-sm">
+                <div className="mt-2 flex justify-between text-sm">
                   <span className="text-slate-600">Min Alım:</span>
-                  <span className="font-semibold text-slate-900">1 Adet</span>
+                  <span className="font-semibold text-slate-900">{product.minimumOrderQuantity} Adet</span>
                 </div>
               </div>
 
-              {/* Seller Badge */}
-              <div className="mb-6 rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className="text-lg">🛡️</span>
-                    <div>
-                      <div className="font-semibold text-slate-900">
-                        Onaylı Satıcı {maskedSeller.replace("Supplier #", "#")}
-                      </div>
-                      <div className="flex items-center gap-1 text-sm text-slate-600">
-                        <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                        <span className="font-medium">4.8</span>
-                        <span>(127 değerlendirme)</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Action Button */}
               <button
-                onClick={() => handleContactClick(supplierId)}
-                className="w-full rounded-lg bg-slate-900 py-4 text-lg font-semibold text-white transition-colors hover:bg-slate-800"
+                onClick={handleContactClick}
+                className="mb-4 w-full rounded-lg bg-slate-900 px-6 py-4 text-lg font-semibold text-white transition-colors hover:bg-slate-800"
               >
                 Satıcıyla İletişime Geç
               </button>
 
-              {/* Part Number */}
               {product.partNumber && (
                 <div className="mt-6 border-t border-slate-200 pt-6">
                   <div className="text-sm text-slate-600">Parça Numarası</div>
-                  <div className="mt-1 font-mono text-base font-semibold text-slate-900">
-                    {product.partNumber}
-                  </div>
+                  <div className="mt-1 font-mono text-base font-semibold text-slate-900">{product.partNumber}</div>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* Bottom Section - Tabs */}
-        <div className="mb-12">
-          {/* Tab Buttons */}
-          <div className="border-b border-slate-200">
-            <div className="flex gap-1">
-              <button
-                onClick={() => setActiveTab("description")}
-                className={`px-6 py-3 font-semibold transition-colors ${
-                  activeTab === "description"
-                    ? "border-b-2 border-slate-900 text-slate-900"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Ürün Açıklaması
-              </button>
-              <button
-                onClick={() => setActiveTab("specs")}
-                className={`px-6 py-3 font-semibold transition-colors ${
-                  activeTab === "specs"
-                    ? "border-b-2 border-slate-900 text-slate-900"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Teknik Özellikler
-              </button>
-              <button
-                onClick={() => setActiveTab("logistics")}
-                className={`px-6 py-3 font-semibold transition-colors ${
-                  activeTab === "logistics"
-                    ? "border-b-2 border-slate-900 text-slate-900"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Lojistik
-              </button>
+        {/* Tabs */}
+        <div className="mb-12 min-w-0">
+          <div className="min-w-0 overflow-hidden border-b border-slate-200">
+            <div className="flex min-w-0 gap-1">
+              {[
+                { key: "description", label: "Ürün Açıklaması" },
+                { key: "specs", label: "Teknik Özellikler" },
+                { key: "logistics", label: "Lojistik" },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveTab(tab.key as typeof activeTab)}
+                  className={`px-6 py-3 font-semibold transition-colors ${
+                    activeTab === tab.key
+                      ? "border-b-2 border-slate-900 text-slate-900"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Tab Content */}
-          <div className="rounded-xl border border-slate-200 border-t-0 bg-white p-8">
+          <div className="min-w-0 overflow-hidden rounded-xl border border-slate-200 border-t-0 bg-white p-6 sm:p-8">
             {activeTab === "description" && (
-              <div className="prose prose-slate max-w-none">
-                <p className="text-lg text-slate-700">
-                  {product.title}, endüstriyel otomasyon sistemleri için yüksek
-                  kaliteli bir {product.subCategory.toLowerCase()} ürünüdür.{" "}
-                  {product.brand} markasının güvenilir ve dayanıklı ekipmanları
-                  arasında yer alan bu ürün, profesyonel uygulamalar için
-                  tasarlanmıştır.
-                </p>
-                <p className="mt-4 text-slate-600">
-                  Ürün, fabrika ortamında kullanılmaya uygun olup, sertifikalı
-                  ve garantilidir. Depolama koşullarına uygun şekilde
-                  muhafaza edilmiştir. Detaylı teknik dökümanlar ve kullanım
-                  kılavuzu ile birlikte teslim edilecektir.
-                </p>
+              <div className="prose prose-slate max-w-none break-words">
+                <p className="text-lg text-slate-700">{product.description}</p>
               </div>
             )}
 
@@ -316,50 +324,21 @@ export default function ProductDetailPage() {
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div>
                     <div className="text-sm font-medium text-slate-600">Marka</div>
-                    <div className="mt-1 text-lg font-semibold text-slate-900">
-                      {product.brand}
-                    </div>
+                    <div className="mt-1 text-lg font-semibold text-slate-900">{product.brand || "-"}</div>
                   </div>
-                  {product.series && (
-                    <div>
-                      <div className="text-sm font-medium text-slate-600">Seri</div>
-                      <div className="mt-1 text-lg font-semibold text-slate-900">
-                        {product.series}
-                      </div>
-                    </div>
-                  )}
+                  <div>
+                    <div className="text-sm font-medium text-slate-600">Model</div>
+                    <div className="mt-1 text-lg font-semibold text-slate-900">{product.model || "-"}</div>
+                  </div>
                   {product.partNumber && (
                     <div>
                       <div className="text-sm font-medium text-slate-600">Parça Numarası</div>
-                      <div className="mt-1 font-mono text-lg font-semibold text-slate-900">
-                        {product.partNumber}
-                      </div>
+                      <div className="mt-1 font-mono text-lg font-semibold text-slate-900">{product.partNumber}</div>
                     </div>
                   )}
                   <div>
                     <div className="text-sm font-medium text-slate-600">Durum</div>
-                    <div className="mt-1 text-lg font-semibold text-slate-900">
-                      {product.condition}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dynamic Specs */}
-                <div className="mt-6 border-t border-slate-200 pt-6">
-                  <h3 className="mb-4 text-lg font-semibold text-slate-900">
-                    Teknik Detaylar
-                  </h3>
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    {Object.entries(product.specs).map(([key, value]) => (
-                      <div key={key}>
-                        <div className="text-sm font-medium text-slate-600 capitalize">
-                          {key}
-                        </div>
-                        <div className="mt-1 text-base font-semibold text-slate-900">
-                          {value}
-                        </div>
-                      </div>
-                    ))}
+                    <div className="mt-1 text-lg font-semibold text-slate-900">{product.condition}</div>
                   </div>
                 </div>
               </div>
@@ -368,25 +347,16 @@ export default function ProductDetailPage() {
             {activeTab === "logistics" && (
               <div className="space-y-6">
                 <div>
-                  <h3 className="mb-3 text-lg font-semibold text-slate-900">
-                    Teslimat Bilgileri
-                  </h3>
+                  <h3 className="mb-3 text-lg font-semibold text-slate-900">Teslimat Bilgileri</h3>
                   <div className="space-y-2 text-slate-600">
                     <p>• Kargo ile gönderim mevcuttur</p>
                     <p>• Stoktan teslim süresi: 1-3 iş günü</p>
                     <p>• Özel kargo sigortası dahildir</p>
-                    <p>• Paketleme: Endüstriyel standartlarda korumalı paketleme</p>
                   </div>
                 </div>
                 <div>
-                  <h3 className="mb-3 text-lg font-semibold text-slate-900">
-                    Depolama
-                  </h3>
-                  <div className="space-y-2 text-slate-600">
-                    <p>• Lokasyon: İstanbul, Türkiye</p>
-                    <p>• Depo koşulları: Kuru ve güvenli ortam</p>
-                    <p>• Sıcaklık kontrolü: 15-25°C</p>
-                  </div>
+                  <h3 className="mb-3 text-lg font-semibold text-slate-900">Lokasyon</h3>
+                  <p className="text-slate-600">{product.region}</p>
                 </div>
               </div>
             )}
@@ -398,47 +368,36 @@ export default function ProductDetailPage() {
           <div>
             <div className="mb-6 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-slate-900">Benzer İlanlar</h2>
-              <Link
-                href="/products"
-                className="flex items-center gap-2 text-sm font-semibold text-slate-900 hover:text-slate-600"
-              >
-                Tümünü Gör
-                <ArrowRight className="h-4 w-4" />
+              <Link href="/products" className="flex items-center gap-2 text-sm font-semibold text-slate-900 hover:text-slate-600">
+                Tümünü Gör <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              {similarProducts.map((similarProduct) => (
-                <ProductCard
-                  key={similarProduct.id}
-                  product={similarProduct}
-                />
+              {similarProducts.map((p) => (
+                <ProductCard key={p.id} product={p} />
               ))}
             </div>
           </div>
         )}
       </main>
 
-      {/* Modals - 3-Step Security Flow */}
+      {/* Modals */}
       <AuthWarningModal
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
+        needsLogin={!isLoggedIn}
       />
-      
-      <NDAModal
-        isOpen={isNDAModalOpen}
-        onClose={() => setIsNDAModalOpen(false)}
-        onAccept={handleNDAAccept}
-      />
-      
-      <ContactModal
-        isOpen={isContactModalOpen}
-        onClose={() => setIsContactModalOpen(false)}
-        supplierId={selectedSupplierId}
-      />
+      <NDAModal isOpen={isNDAModalOpen} onClose={() => setIsNDAModalOpen(false)} onAccept={handleNDAAccept} />
+      {product && (
+        <ContactModal
+          isOpen={isContactModalOpen}
+          onClose={() => setIsContactModalOpen(false)}
+          productId={product.id}
+          productTitle={product.title}
+        />
+      )}
 
-      {/* Footer */}
       <Footer />
     </div>
   );
 }
-

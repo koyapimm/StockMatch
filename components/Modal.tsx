@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { X } from "lucide-react";
 
 type ModalProps = {
   isOpen: boolean;
@@ -16,7 +17,7 @@ export default function Modal({ isOpen, onClose, title, children, size = "medium
     medium: "max-w-lg",
     large: "max-w-3xl lg:max-w-4xl",
   };
-  // ESC tuşu ile kapatma
+
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
@@ -26,7 +27,6 @@ export default function Modal({ isOpen, onClose, title, children, size = "medium
 
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
-      // Modal açıkken body scroll'unu engelle
       document.body.style.overflow = "hidden";
     }
 
@@ -55,17 +55,7 @@ export default function Modal({ isOpen, onClose, title, children, size = "medium
             className="rounded-lg p-1 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-600 flex-shrink-0"
             aria-label="Close"
           >
-            <svg
-              className="h-5 w-5 sm:h-6 sm:w-6"
-              fill="none"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <X className="h-5 w-5 sm:h-6 sm:w-6" />
           </button>
         </div>
 
@@ -77,4 +67,3 @@ export default function Modal({ isOpen, onClose, title, children, size = "medium
     </div>
   );
 }
-

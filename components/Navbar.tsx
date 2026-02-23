@@ -1,14 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/contexts/AuthContext";
-import { Menu, X } from "lucide-react";
+import { Menu, X, User, LogOut, LayoutDashboard, Shield } from "lucide-react";
+import { isAdminUser } from "@/lib/utils";
 
 export default function Navbar() {
-  const { isLoggedIn, userCompany, logout } = useAuth();
+  const { isLoggedIn, user, company, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const isAdmin = isAdminUser(user?.email);
+
+  // Hydration uyumsuzluğunu önlemek için
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <nav className="bg-white border-b border-slate-200 shadow-sm">
@@ -41,63 +49,66 @@ export default function Navbar() {
               >
                 Ürünler
               </Link>
-              <a
-                href="#"
+              <Link
+                href="/kurumsal"
                 className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
               >
                 Kurumsal
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                href="/iletisim"
                 className="text-sm font-medium text-slate-600 transition-colors hover:text-slate-900"
               >
                 İletişim
-              </a>
+              </Link>
             </div>
           </div>
 
           {/* Right Side - Auth State */}
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Desktop Auth Buttons */}
-            {isLoggedIn ? (
+            {mounted && isLoggedIn ? (
               <div className="hidden items-center gap-3 sm:flex">
                 {/* Avatar Icon */}
                 <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900">
-                  <svg
-                    className="h-5 w-5 text-white"
-                    fill="none"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
+                  <User className="h-5 w-5 text-white" />
                 </div>
 
-                {/* Company Name */}
+                {/* User/Company Name */}
                 <span className="hidden text-sm text-slate-700 lg:block">
-                  {userCompany || "Trifaze Otomasyon A.Ş."}
+                  {company?.name || `${user?.firstName} ${user?.lastName}`}
                 </span>
 
                 {/* Dashboard Link */}
                 <Link
                   href="/dashboard"
-                  className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-800 sm:px-4 sm:text-sm"
+                  className="flex items-center gap-1 rounded-lg bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-slate-800 sm:px-4 sm:text-sm"
                 >
+                  <LayoutDashboard className="h-4 w-4" />
                   Dashboard
                 </Link>
+
+                {/* Admin Link */}
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    className="flex items-center gap-1 rounded-lg bg-orange-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-orange-700 sm:px-4 sm:text-sm"
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin
+                  </Link>
+                )}
 
                 {/* Logout Button */}
                 <button
                   onClick={logout}
-                  className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
+                  className="flex items-center gap-1 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50"
                 >
+                  <LogOut className="h-4 w-4" />
                   Çıkış
                 </button>
               </div>
-            ) : (
+            ) : mounted ? (
               <div className="hidden items-center gap-2 sm:flex">
                 <Link
                   href="/login"
@@ -112,12 +123,12 @@ export default function Navbar() {
                   Kayıt Ol
                 </Link>
               </div>
-            )}
+            ) : null}
 
             {/* Mobile Menu Button */}
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 sm:hidden"
+              className="rounded-lg p-2 text-slate-600 transition-colors hover:bg-slate-100 md:hidden"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? (
@@ -131,7 +142,7 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
-          <div className="mt-4 border-t border-slate-200 pt-4 sm:hidden">
+          <div className="mt-4 border-t border-slate-200 pt-4 md:hidden">
             {/* Mobile Navigation Links */}
             <div className="mb-4 flex flex-col gap-2">
               <Link
@@ -148,41 +159,31 @@ export default function Navbar() {
               >
                 Ürünler
               </Link>
-              <a
-                href="#"
+              <Link
+                href="/kurumsal"
                 onClick={() => setMobileMenuOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
               >
                 Kurumsal
-              </a>
-              <a
-                href="#"
+              </Link>
+              <Link
+                href="/iletisim"
                 onClick={() => setMobileMenuOpen(false)}
                 className="rounded-lg px-4 py-2 text-sm font-medium text-slate-600 transition-colors hover:bg-slate-50 hover:text-slate-900"
               >
                 İletişim
-              </a>
+              </Link>
             </div>
 
             {/* Mobile Auth Buttons */}
-            {isLoggedIn ? (
+            {mounted && isLoggedIn ? (
               <div className="flex flex-col gap-2">
                 <div className="flex items-center gap-2 rounded-lg px-4 py-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-slate-900">
-                    <svg
-                      className="h-5 w-5 text-white"
-                      fill="none"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      viewBox="0 0 24 24"
-                      stroke="currentColor"
-                    >
-                      <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
+                    <User className="h-5 w-5 text-white" />
                   </div>
                   <span className="text-sm text-slate-700">
-                    {userCompany || "Trifaze Otomasyon A.Ş."}
+                    {company?.name || `${user?.firstName} ${user?.lastName}`}
                   </span>
                 </div>
                 <Link
@@ -192,6 +193,15 @@ export default function Navbar() {
                 >
                   Dashboard
                 </Link>
+                {isAdmin && (
+                  <Link
+                    href="/admin"
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="rounded-lg bg-orange-600 px-4 py-2 text-center text-sm font-semibold text-white transition-colors hover:bg-orange-700"
+                  >
+                    Admin Panel
+                  </Link>
+                )}
                 <button
                   onClick={() => {
                     logout();
@@ -202,7 +212,7 @@ export default function Navbar() {
                   Çıkış
                 </button>
               </div>
-            ) : (
+            ) : mounted ? (
               <div className="flex flex-col gap-2">
                 <Link
                   href="/login"
@@ -219,11 +229,10 @@ export default function Navbar() {
                   Kayıt Ol
                 </Link>
               </div>
-            )}
+            ) : null}
           </div>
         )}
       </div>
-    </nav>
+    </nav >
   );
 }
-
