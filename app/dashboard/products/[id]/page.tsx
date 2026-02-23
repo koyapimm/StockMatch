@@ -111,7 +111,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             if (result.valid) {
                 toAdd.push(file);
             } else {
-                showToast(result.error, "error");
+                showToast(result.error ?? "Geçersiz görsel dosyası.", "error");
                 break;
             }
         }
@@ -186,7 +186,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 for (const file of newImages) {
                     const result = validateImageFile(file);
                     if (!result.valid) {
-                        showToast(result.error, "error");
+                        showToast(result.error ?? "Geçersiz görsel dosyası.", "error");
                         return;
                     }
                     await productImageApi.upload(productId, file, false);

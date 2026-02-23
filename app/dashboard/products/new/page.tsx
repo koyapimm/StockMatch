@@ -77,7 +77,7 @@ export default function NewProductPage() {
             if (result.valid) {
                 toAdd.push(file);
             } else {
-                showToast(result.error, "error");
+                showToast(result.error ?? "Geçersiz görsel dosyası.", "error");
                 break;
             }
         }
@@ -174,7 +174,7 @@ export default function NewProductPage() {
                 for (let i = 0; i < images.length; i++) {
                     const result = validateImageFile(images[i]);
                     if (!result.valid) {
-                        showToast(result.error, "error");
+                        showToast(result.error ?? "Geçersiz görsel dosyası.", "error");
                         return;
                     }
                     await productImageApi.upload(response.product!.id, images[i], i === primaryImageIndex);
