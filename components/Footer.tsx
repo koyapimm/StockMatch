@@ -176,7 +176,7 @@ export default function Footer() {
               <li className="flex items-start gap-3">
                 <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
                 <span className="text-sm text-slate-400">
-                  Maslak, İstanbul, Türkiye
+                  Karşıyaka, İzmir, Türkiye
                 </span>
               </li>
             </ul>

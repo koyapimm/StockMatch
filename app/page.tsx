@@ -146,6 +146,42 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Sektör verileri */}
+      <section className="bg-slate-900 py-16 sm:py-20">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-px sm:grid-cols-2 lg:grid-cols-4 bg-slate-700/50">
+            <div className="flex flex-col bg-slate-900 p-8">
+              <p className="tabular-nums text-3xl font-semibold tracking-tight text-white sm:text-4xl">%38</p>
+              <p className="mt-4 text-sm leading-relaxed text-slate-400">
+                KOBİ’lerin toplam stoklarının fazlası atıl konumda; büyük KOBİ’lerde bu oran %44’e çıkıyor.
+              </p>
+              <p className="mt-6 text-xs text-slate-500">Benchmark raporları, 2024</p>
+            </div>
+            <div className="flex flex-col bg-slate-900 p-8">
+              <p className="tabular-nums text-3xl font-semibold tracking-tight text-white sm:text-4xl">$142K+</p>
+              <p className="mt-4 text-sm leading-relaxed text-slate-400">
+                Ortalama işletmenin gereğinden fazla tuttuğu stok değeri; makine ve tıbbi malzemede $300K’ya yaklaşıyor.
+              </p>
+              <p className="mt-6 text-xs text-slate-500">Envanter araştırmaları</p>
+            </div>
+            <div className="flex flex-col bg-slate-900 p-8">
+              <p className="tabular-nums text-3xl font-semibold tracking-tight text-white sm:text-4xl">%80</p>
+              <p className="mt-4 text-sm leading-relaxed text-slate-400">
+                KOBİ’ler hem yetersiz planlama hem fazla stokla mücadele ediyor; yavaş hareket eden stok yaygın.
+              </p>
+              <p className="mt-6 text-xs text-slate-500">Tedarik zinciri benchmark</p>
+            </div>
+            <div className="flex flex-col bg-slate-900 p-8">
+              <p className="tabular-nums text-3xl font-semibold tracking-tight text-white sm:text-4xl">B2B</p>
+              <p className="mt-4 text-sm leading-relaxed text-slate-400">
+                Endüstriyel ikinci el ve atıl stok pazarı, döngüsel ekonomi ve kaynak verimliliği ile büyüyor.
+              </p>
+              <p className="mt-6 text-xs text-slate-500">Pazar analizleri</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Category Grid */}
       <section className="bg-white py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
