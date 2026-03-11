@@ -10,10 +10,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/contexts/ToastContext";
 import { productApi, categoryApi, productImageApi, ProductDto, CategoryDto, getApiImageUrl } from "@/lib/api";
 import { validateImageFile } from "@/lib/utils";
-import { X, ImagePlus, Star } from "lucide-react";
+import { X, ImagePlus, Star, GripVertical } from "lucide-react";
 
 const CONDITIONS = ["Sıfır", "Yeni Gibi", "Yenilenmiş", "İkinci El", "Kullanılmış"];
 const CURRENCIES = ["TRY", "USD", "EUR"];
+const MAX_IMAGES = 10;
+
+type ImageItemExisting = { type: "existing"; id: number; imageUrl: string };
+type ImageItemNew = { type: "new"; file: File; preview: string };
+type ImageItem = ImageItemExisting | ImageItemNew;
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
@@ -30,8 +35,9 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
 
-    const [newImages, setNewImages] = useState<File[]>([]);
-    const [newImagesPreviews, setNewImagesPreviews] = useState<string[]>([]);
+    const [orderedItems, setOrderedItems] = useState<ImageItem[]>([]);
+    const [primaryIndex, setPrimaryIndex] = useState(0);
+    const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
     const [formData, setFormData] = useState({
         categoryId: "",
@@ -75,6 +81,14 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                 if (productRes.success && productRes.product) {
                     const p = productRes.product;
                     setProduct(p);
+                    const existing = (p.images ?? []).map((img) => ({
+                        type: "existing" as const,
+                        id: img.id,
+                        imageUrl: img.imageUrl,
+                    }));
+                    setOrderedItems(existing);
+                    const primaryIdx = p.images?.findIndex((i) => i.isPrimary) ?? 0;
+                    setPrimaryIndex(primaryIdx >= 0 ? primaryIdx : 0);
                     setFormData({
                         categoryId: String(p.categoryId),
                         title: p.title,
@@ -106,55 +120,107 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        const currentTotal = (product?.images?.length || 0) + newImages.length;
-        const remainingSlots = 5 - currentTotal;
-        const toAdd: File[] = [];
+        const remainingSlots = MAX_IMAGES - orderedItems.length;
+        const toAdd: ImageItemNew[] = [];
         for (const file of files.slice(0, remainingSlots)) {
             const result = validateImageFile(file);
             if (result.valid) {
-                toAdd.push(file);
+                toAdd.push({ type: "new", file, preview: URL.createObjectURL(file) });
             } else {
                 showToast(result.error, "error");
                 break;
             }
         }
         if (toAdd.length > 0) {
-            setNewImages((prev) => [...prev, ...toAdd]);
-            setNewImagesPreviews((prev) => [...prev, ...toAdd.map((f) => URL.createObjectURL(f))]);
+            setOrderedItems((prev) => [...prev, ...toAdd]);
         }
     };
 
-    const removeNewImage = (index: number) => {
-        URL.revokeObjectURL(newImagesPreviews[index]);
-        setNewImages(newImages.filter((_, i) => i !== index));
-        setNewImagesPreviews(newImagesPreviews.filter((_, i) => i !== index));
+    const removeImage = (index: number) => {
+        const item = orderedItems[index];
+        if (item.type === "new") {
+            URL.revokeObjectURL(item.preview);
+        }
+        setOrderedItems((prev) => prev.filter((_, i) => i !== index));
+        if (primaryIndex === index) {
+            setPrimaryIndex(0);
+        } else if (primaryIndex > index) {
+            setPrimaryIndex(primaryIndex - 1);
+        }
     };
 
-    const handleDeleteExistingImage = async (imageId: number) => {
+    const handleDeleteExistingImage = async (index: number) => {
+        const item = orderedItems[index];
+        if (item.type !== "existing") return;
         try {
-            await productImageApi.delete(imageId);
-            setProduct(prev => prev ? {
-                ...prev,
-                images: prev.images?.filter(img => img.id !== imageId)
-            } : null);
+            await productImageApi.delete(item.id);
+            setProduct((prev) =>
+                prev
+                    ? { ...prev, images: prev.images?.filter((img) => img.id !== item.id) ?? [] }
+                    : null
+            );
+            setOrderedItems((prev) => prev.filter((_, i) => i !== index));
+            if (primaryIndex === index) {
+                setPrimaryIndex(0);
+            } else if (primaryIndex > index) {
+                setPrimaryIndex(primaryIndex - 1);
+            }
         } catch (error) {
             showToast(error instanceof Error ? error.message : "Görsel silinirken hata oluştu.", "error");
         }
     };
 
-    const handleSetPrimary = async (imageId: number) => {
+    const setPrimaryImage = (index: number) => {
+        setPrimaryIndex(index);
+    };
+
+    const handleSetPrimaryExisting = async (index: number) => {
+        const item = orderedItems[index];
+        if (item.type !== "existing") return;
         try {
-            await productImageApi.setPrimary(imageId);
-            setProduct(prev => prev ? {
-                ...prev,
-                images: prev.images?.map(img => ({
-                    ...img,
-                    isPrimary: img.id === imageId
-                }))
-            } : null);
+            await productImageApi.setPrimary(item.id);
+            setProduct((prev) =>
+                prev
+                    ? {
+                          ...prev,
+                          images: prev.images?.map((img) => ({
+                              ...img,
+                              isPrimary: img.id === item.id,
+                          })),
+                      }
+                    : null
+            );
+            setPrimaryIndex(index);
         } catch (error) {
             showToast(error instanceof Error ? error.message : "Ana görsel ayarlanırken hata oluştu.", "error");
         }
+    };
+
+    const handleDragStart = (index: number) => {
+        setDraggedIndex(index);
+    };
+
+    const handleDragOver = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        if (draggedIndex === null || draggedIndex === index) return;
+        const newItems = [...orderedItems];
+        const [removed] = newItems.splice(draggedIndex, 1);
+        newItems.splice(index, 0, removed);
+        let newPrimary = primaryIndex;
+        if (draggedIndex === primaryIndex) {
+            newPrimary = index;
+        } else if (draggedIndex < primaryIndex && index >= primaryIndex) {
+            newPrimary = primaryIndex - 1;
+        } else if (draggedIndex > primaryIndex && index <= primaryIndex) {
+            newPrimary = primaryIndex + 1;
+        }
+        setOrderedItems(newItems);
+        setPrimaryIndex(newPrimary);
+        setDraggedIndex(index);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedIndex(null);
     };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
@@ -184,20 +250,36 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             const response = await productApi.update(productId, productData);
 
             if (response.success) {
-                for (const file of newImages) {
-                    const result = validateImageFile(file);
+                const primaryItem = orderedItems[primaryIndex];
+                if (primaryItem?.type === "existing") {
+                    const currentPrimary = product?.images?.find((i) => i.isPrimary);
+                    if (currentPrimary?.id !== primaryItem.id) {
+                        await productImageApi.setPrimary(primaryItem.id);
+                    }
+                }
+                for (let index = 0; index < orderedItems.length; index++) {
+                    const item = orderedItems[index];
+                    if (item.type !== "new") continue;
+                    const result = validateImageFile(item.file);
                     if (!result.valid) {
                         showToast(result.error, "error");
                         return;
                     }
-                    await productImageApi.upload(productId, file, false);
+                    await productImageApi.upload(productId, item.file, index === primaryIndex);
                 }
-                setNewImages([]);
-                setNewImagesPreviews([]);
 
                 const refreshed = await productApi.getById(productId);
                 if (refreshed.success && refreshed.product) {
-                    setProduct(refreshed.product);
+                    const p = refreshed.product;
+                    setProduct(p);
+                    const existing = (p.images ?? []).map((img) => ({
+                        type: "existing" as const,
+                        id: img.id,
+                        imageUrl: img.imageUrl,
+                    }));
+                    setOrderedItems(existing);
+                    const primaryIdx = p.images?.findIndex((i) => i.isPrimary) ?? 0;
+                    setPrimaryIndex(primaryIdx >= 0 ? primaryIdx : 0);
                 }
                 showToast("Ürün başarıyla güncellendi!", "success");
             } else {
@@ -264,7 +346,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         );
     }
 
-    const totalImages = (product.images?.length || 0) + newImages.length;
+    const totalImages = orderedItems.length;
 
     return (
         <div className="min-h-screen bg-slate-50">
@@ -287,66 +369,78 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                     {/* Images */}
                     <div className="rounded-lg bg-white p-6 shadow-sm">
                         <h2 className="mb-4 text-lg font-semibold text-slate-900">Ürün Görselleri</h2>
+                        <p className="mb-4 text-sm text-slate-600">
+                            Maksimum {MAX_IMAGES} görsel. Yıldıza tıklayarak ana görseli seçin, sürükleyerek sıralayın.
+                        </p>
 
                         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-5">
-                            {/* Existing images */}
-                            {product.images?.map((image) => (
-                                <div key={image.id} className="relative aspect-square rounded-lg border-2 border-slate-200 overflow-hidden">
-                                    <Image
-                                        src={getApiImageUrl(image.imageUrl)}
-                                        alt="Product image"
-                                        fill
-                                        className="object-cover"
-                                        unoptimized
-                                    />
-                                    <div className="absolute right-1 top-1 flex gap-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => handleSetPrimary(image.id)}
-                                            className={`rounded-full p-1 ${image.isPrimary ? 'bg-yellow-500 text-white' : 'bg-white text-slate-400 hover:bg-yellow-50 hover:text-yellow-500'}`}
-                                            title="Ana görsel yap"
-                                        >
-                                            <Star className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDeleteExistingImage(image.id)}
-                                            className="rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
-                                            title="Sil"
-                                        >
-                                            <X className="h-4 w-4" />
-                                        </button>
+                            {orderedItems.map((item, index) => (
+                                <div
+                                    key={item.type === "existing" ? item.id : item.preview}
+                                    draggable
+                                    onDragStart={() => handleDragStart(index)}
+                                    onDragOver={(e) => handleDragOver(e, index)}
+                                    onDragEnd={handleDragEnd}
+                                    className={`relative aspect-square rounded-lg border-2 overflow-hidden cursor-move transition-all ${
+                                        index === primaryIndex ? "border-yellow-400 ring-2 ring-yellow-400" : "border-slate-200"
+                                    } ${draggedIndex === index ? "opacity-50" : ""}`}
+                                >
+                                    {item.type === "existing" ? (
+                                        <Image
+                                            src={getApiImageUrl(item.imageUrl)}
+                                            alt="Ürün"
+                                            fill
+                                            className="object-cover"
+                                            unoptimized
+                                        />
+                                    ) : (
+                                        <img src={item.preview} alt={`Yeni ${index + 1}`} className="h-full w-full object-cover" />
+                                    )}
+                                    <div className="absolute left-1 top-1 rounded bg-black/50 p-1 text-white">
+                                        <GripVertical className="h-3 w-3" />
                                     </div>
-                                    {image.isPrimary && (
-                                        <span className="absolute bottom-1 left-1 rounded bg-slate-900 px-2 py-0.5 text-xs text-white">
-                                            Ana Görsel
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            item.type === "existing" ? handleSetPrimaryExisting(index) : setPrimaryImage(index)
+                                        }
+                                        className={`absolute left-1 bottom-1 rounded-full p-1.5 transition-colors ${
+                                            index === primaryIndex
+                                                ? "bg-yellow-400 text-yellow-900"
+                                                : "bg-black/50 text-white hover:bg-yellow-400 hover:text-yellow-900"
+                                        }`}
+                                        title="Ana görsel yap"
+                                    >
+                                        <Star className={`h-3 w-3 ${index === primaryIndex ? "fill-current" : ""}`} />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() =>
+                                            item.type === "existing" ? handleDeleteExistingImage(index) : removeImage(index)
+                                        }
+                                        className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
+                                        title="Sil"
+                                    >
+                                        <X className="h-4 w-4" />
+                                    </button>
+                                    {index === primaryIndex && (
+                                        <span className="absolute bottom-1 right-1 rounded bg-yellow-400 px-1.5 py-0.5 text-xs font-medium text-yellow-900">
+                                            Ana
+                                        </span>
+                                    )}
+                                    {item.type === "new" && (
+                                        <span className="absolute top-1 right-8 rounded bg-green-600 px-1.5 py-0.5 text-xs text-white">
+                                            Yeni
                                         </span>
                                     )}
                                 </div>
                             ))}
 
-                            {/* New images to upload */}
-                            {newImagesPreviews.map((preview, index) => (
-                                <div key={`new-${index}`} className="relative aspect-square rounded-lg border-2 border-dashed border-green-300 overflow-hidden">
-                                    <img src={preview} alt={`New ${index + 1}`} className="h-full w-full object-cover" />
-                                    <button
-                                        type="button"
-                                        onClick={() => removeNewImage(index)}
-                                        className="absolute right-1 top-1 rounded-full bg-red-500 p-1 text-white hover:bg-red-600"
-                                    >
-                                        <X className="h-4 w-4" />
-                                    </button>
-                                    <span className="absolute bottom-1 left-1 rounded bg-green-600 px-2 py-0.5 text-xs text-white">
-                                        Yeni
-                                    </span>
-                                </div>
-                            ))}
-
-                            {/* Add more button */}
-                            {totalImages < 5 && (
+                            {totalImages < MAX_IMAGES && (
                                 <label className="flex aspect-square cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-300 bg-slate-50 hover:border-slate-400 hover:bg-slate-100">
                                     <ImagePlus className="h-8 w-8 text-slate-400" />
                                     <span className="mt-2 text-sm text-slate-500">Görsel Ekle</span>
+                                    <span className="text-xs text-slate-400">{totalImages}/{MAX_IMAGES}</span>
                                     <input
                                         type="file"
                                         accept="image/*"

@@ -1,45 +1,31 @@
 // API Base URL
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://localhost:7001/api";
 
-// Token yönetimi
-export const getToken = (): string | null => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("token");
-  }
-  return null;
-};
+/**
+ * Kimlik doğrulama: HttpOnly cookie kullanılıyor.
+ * Token JavaScript ile erişilemez; XSS ile çalınamaz.
+ * Backend: Login/Register yanıtında Set-Cookie (HttpOnly; Secure; SameSite=Strict) dönmeli.
+ * Logout: POST /Auth/logout cookie'yi temizlemeli.
+ */
+// Eski localStorage token API'leri artık kullanılmıyor (geriye dönük referans için export edilebilir, kullanmayın)
+export const getToken = (): string | null => null;
+export const setToken = (_token: string): void => {};
+export const removeToken = (): void => {};
 
-export const setToken = (token: string): void => {
-  if (typeof window !== "undefined") {
-    localStorage.setItem("token", token);
-  }
-};
-
-export const removeToken = (): void => {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("token");
-  }
-};
-
-// Genel fetch wrapper
+// Genel fetch wrapper — cookie otomatik gider (credentials: 'include')
 async function fetchApi<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
-  const token = getToken();
-
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...options.headers,
   };
 
-  if (token) {
-    (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
-  }
-
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
     headers,
+    credentials: "include",
   });
 
   const data = await response.json();
@@ -100,6 +86,11 @@ export const authApi = {
     }),
 
   getProfile: () => fetchApi<AuthResponse>("/Auth/profile"),
+
+  logout: () =>
+    fetchApi<{ success?: boolean }>("/Auth/logout", {
+      method: "POST",
+    }),
 
   updateProfile: (data: { firstName: string; lastName: string; phoneNumber?: string }) =>
     fetchApi<AuthResponse>("/Auth/profile", {
@@ -173,16 +164,13 @@ export const companyApi = {
     }),
 
   uploadLogo: async (file: File): Promise<CompanyResponse> => {
-    const token = getToken();
     const formData = new FormData();
     formData.append("file", file);
 
     const response = await fetch(`${API_BASE_URL}/Company/logo`, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
       body: formData,
+      credentials: "include",
     });
 
     return response.json();
@@ -369,7 +357,6 @@ export const productImageApi = {
     fetchApi<ProductImageListResponse>(`/ProductImage/product/${productId}`),
 
   upload: async (productId: number, file: File, isPrimary: boolean = false): Promise<ProductImageResponse> => {
-    const token = getToken();
     const formData = new FormData();
     formData.append("file", file);
 
@@ -377,10 +364,8 @@ export const productImageApi = {
       `${API_BASE_URL}/ProductImage/upload/${productId}?isPrimary=${isPrimary}`,
       {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
         body: formData,
+        credentials: "include",
       }
     );
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react";
-import { authApi, companyApi, UserDto, CompanyDto, getToken, setToken, removeToken } from "@/lib/api";
+import { authApi, companyApi, UserDto, CompanyDto } from "@/lib/api";
 
 type AuthContextType = {
   isLoggedIn: boolean;
@@ -17,7 +17,7 @@ type AuthContextType = {
     confirmPassword: string;
     phoneNumber?: string;
   }) => Promise<{ success: boolean; message: string }>;
-  logout: () => void;
+  logout: () => void | Promise<void>;
   refreshUser: () => Promise<void>;
   refreshCompany: () => Promise<void>;
 };
@@ -30,22 +30,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserDto | null>(null);
   const [company, setCompany] = useState<CompanyDto | null>(null);
 
-  // Sayfa yüklendiğinde token kontrolü
+  // Sayfa yüklendiğinde oturum kontrolü (HttpOnly cookie ile; JS token'a erişemez)
   useEffect(() => {
     const initAuth = async () => {
-      const token = getToken();
-      if (token) {
-        try {
-          await refreshUser();
-          setIsLoggedIn(true);
-        } catch (error) {
-          if (process.env.NODE_ENV === "development") {
-            console.error("Token geçersiz:", error);
-          }
-          removeToken();
-        }
+      try {
+        await refreshUser();
+        setIsLoggedIn(true);
+      } catch {
+        setIsLoggedIn(false);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     initAuth();
@@ -83,8 +78,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const response = await authApi.login({ email, password });
 
-      if (response.success && response.token) {
-        setToken(response.token);
+      if (response.success) {
+        // Backend Set-Cookie (HttpOnly) döndü; sonraki isteklerde cookie gider
         setUser(response.user || null);
         setIsLoggedIn(true);
         await refreshCompany();
@@ -110,9 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authApi.register(data);
 
       if (response.success) {
-        // If token is provided, auto-login
         if (response.token) {
-          setToken(response.token);
           setUser(response.user || null);
           setIsLoggedIn(true);
         }
@@ -129,11 +122,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const logout = () => {
-    removeToken();
-    setUser(null);
-    setCompany(null);
-    setIsLoggedIn(false);
+  const logout = async () => {
+    try {
+      await authApi.logout();
+    } catch {
+      // Backend logout yoksa veya hata olsa da client state temizlenir
+    } finally {
+      setUser(null);
+      setCompany(null);
+      setIsLoggedIn(false);
+    }
   };
 
   return (
