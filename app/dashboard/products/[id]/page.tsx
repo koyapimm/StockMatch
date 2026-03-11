@@ -17,7 +17,8 @@ const CURRENCIES = ["TRY", "USD", "EUR"];
 
 export default function EditProductPage({ params }: { params: Promise<{ id: string }> }) {
     const resolvedParams = use(params);
-    const productId = parseInt(resolvedParams.id);
+    const productId = parseInt(resolvedParams?.id ?? "", 10);
+    const isInvalidId = Number.isNaN(productId) || productId < 1;
     const router = useRouter();
     const { showToast } = useToast();
     const { isLoggedIn, isLoading: authLoading, company } = useAuth();
@@ -96,10 +97,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             }
         };
 
-        if (isLoggedIn) {
+        if (isLoggedIn && !isInvalidId) {
             fetchData();
+        } else if (isInvalidId) {
+            setIsLoading(false);
         }
-    }, [isLoggedIn, productId, showToast]);
+    }, [isLoggedIn, productId, isInvalidId]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
@@ -153,8 +156,6 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
             showToast(error instanceof Error ? error.message : "Ana görsel ayarlanırken hata oluştu.", "error");
         }
     };
-        setError(null);
-        setSuccess(null);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -216,6 +217,22 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         return (
             <div className="flex min-h-screen items-center justify-center bg-slate-50">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-900 border-t-transparent" />
+            </div>
+        );
+    }
+
+    if (isInvalidId) {
+        return (
+            <div className="min-h-screen bg-slate-50">
+                <Navbar />
+                <main className="mx-auto max-w-4xl px-4 py-8">
+                    <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-center">
+                        <h2 className="text-lg font-semibold text-red-800">Geçersiz ürün</h2>
+                        <Link href="/dashboard/products" className="mt-4 inline-block text-sm font-medium text-red-600 hover:underline">
+                            Ürünlerime Dön
+                        </Link>
+                    </div>
+                </main>
             </div>
         );
     }
