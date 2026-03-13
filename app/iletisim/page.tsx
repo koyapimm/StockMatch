@@ -60,7 +60,7 @@ export default function IletisimPage() {
                     href="mailto:info@stockmatch.com"
                     className="text-slate-600 hover:text-slate-600 hover:underline"
                   >
-                    info@stockmatch.com
+                    nazmisarp@outlook.com
                   </a>
                 </div>
               </li>
@@ -71,10 +71,10 @@ export default function IletisimPage() {
                 <div>
                   <p className="font-medium text-slate-900">Telefon</p>
                   <a
-                    href="tel:+902121234567"
+                    href="tel:+905519453558"
                     className="text-slate-600 hover:text-slate-600 hover:underline"
                   >
-                    +90 (212) 123 45 67
+                    +90 (551) 945 35 58
                   </a>
                 </div>
               </li>
@@ -85,7 +85,7 @@ export default function IletisimPage() {
                 <div>
                   <p className="font-medium text-slate-900">Adres</p>
                   <span className="text-slate-600">
-                    Karşıyaka, İzmir, Türkiye
+                    Bahriye Üçok, Girne Blv No:122/B, Karşıyaka/İzmir
                   </span>
                 </div>
               </li>

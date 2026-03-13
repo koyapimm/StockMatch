@@ -18,7 +18,7 @@ type AuthContextType = {
     phoneNumber?: string;
   }) => Promise<{ success: boolean; message: string }>;
   logout: () => void | Promise<void>;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<boolean>;
   refreshCompany: () => Promise<void>;
 };
 
@@ -30,12 +30,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserDto | null>(null);
   const [company, setCompany] = useState<CompanyDto | null>(null);
 
-  // Sayfa yüklendiğinde oturum kontrolü (HttpOnly cookie ile; JS token'a erişemez)
+  // Sayfa yüklendiğinde oturum kontrolü (HttpOnly cookie ile; 401 hata fırlatmaz, console temiz)
   useEffect(() => {
     const initAuth = async () => {
       try {
-        await refreshUser();
-        setIsLoggedIn(true);
+        const ok = await refreshUser();
+        setIsLoggedIn(ok);
       } catch {
         setIsLoggedIn(false);
       } finally {
@@ -46,19 +46,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     initAuth();
   }, []);
 
-  const refreshUser = async () => {
-    try {
-      const response = await authApi.getProfile();
-      if (response.success && response.user) {
-        setUser(response.user);
-        await refreshCompany();
-      }
-    } catch (error) {
-      if (process.env.NODE_ENV === "development") {
-        console.error("Kullanıcı bilgisi alınamadı:", error);
-      }
-      throw error;
+  const refreshUser = async (): Promise<boolean> => {
+    const response = await authApi.getProfile();
+    if (response.success && response.user) {
+      setUser(response.user);
+      await refreshCompany();
+      return true;
     }
+    return false;
   };
 
   const refreshCompany = async () => {

@@ -26,7 +26,7 @@ export default function Navbar() {
           <div className="flex items-center gap-4 sm:gap-8">
             <Link href="/" className="flex items-center">
               <Image
-                src="/stockmatch_logo.jpeg"
+                src="/logo.png"
                 alt="StockMatch"
                 width={140}
                 height={40}

@@ -28,13 +28,21 @@ async function fetchApi<T>(
     credentials: "include",
   });
 
-  const data = await response.json();
+  const text = await response.text();
+  let data: T;
+  try {
+    data = (text ? JSON.parse(text) : {}) as T;
+  } catch {
+    if (!response.ok) {
+      throw new Error(response.status === 401 ? "Oturum geçersiz veya süresi doldu." : `Sunucu hata döndü (${response.status}).`);
+    }
+    throw new Error("Sunucu geçersiz yanıt döndü.");
+  }
 
   if (!response.ok) {
-    // Validasyon hatalarını detaylı göster (data.errors array varsa)
-    const errorMessage = Array.isArray(data.errors) && data.errors.length > 0
-      ? data.errors.join(". ")
-      : data.message || "Bir hata oluştu";
+    const errorMessage = Array.isArray((data as { errors?: string[] }).errors) && (data as { errors?: string[] }).errors!.length > 0
+      ? (data as { errors?: string[] }).errors!.join(". ")
+      : (data as { message?: string }).message || "Bir hata oluştu";
     throw new Error(errorMessage);
   }
 
@@ -85,7 +93,19 @@ export const authApi = {
       body: JSON.stringify(data),
     }),
 
-  getProfile: () => fetchApi<AuthResponse>("/Auth/profile"),
+  getProfile: async (): Promise<AuthResponse> => {
+    const response = await fetch(`${API_BASE_URL}/Auth/profile`, {
+      credentials: "include",
+    });
+    if (response.status === 401) return { success: false, message: "" };
+    const text = await response.text();
+    try {
+      const data = (text ? JSON.parse(text) : {}) as AuthResponse;
+      return response.ok ? data : { success: false, message: (data as { message?: string }).message || "Bir hata oluştu" };
+    } catch {
+      return { success: false, message: "" };
+    }
+  },
 
   logout: () =>
     fetchApi<{ success?: boolean }>("/Auth/logout", {

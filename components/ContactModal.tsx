@@ -95,7 +95,7 @@ export default function ContactModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title="Satıcıyla İletişime Geç"
+      title="Satın Al"
       size="large"
     >
       <div className="mb-4 rounded-lg bg-slate-50 p-4">

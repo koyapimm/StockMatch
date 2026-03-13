@@ -275,7 +275,7 @@ export default function ProductDetailPage({ params }: { params: Promise<{ id: st
                 onClick={handleContactClick}
                 className="mb-4 w-full rounded-lg bg-slate-900 px-6 py-4 text-lg font-semibold text-white transition-colors hover:bg-slate-800"
               >
-                Satıcıyla İletişime Geç
+                Satın Al
               </button>
 
               {product.partNumber && (

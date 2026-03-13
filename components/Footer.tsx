@@ -17,7 +17,7 @@ export default function Footer() {
           <div>
             <Link href="/" className="mb-4 inline-block">
               <Image
-                src="/stockmatch_logo.jpeg"
+                src="/logo.png"
                 alt="StockMatch"
                 width={160}
                 height={45}
@@ -161,22 +161,22 @@ export default function Footer() {
                   href="mailto:info@stockmatch.com"
                   className="text-sm text-slate-400 transition-colors hover:text-white"
                 >
-                  info@stockmatch.com
+                  nazmisarp@outlook.com
                 </a>
               </li>
               <li className="flex items-start gap-3">
                 <Phone className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
                 <a
-                  href="tel:+902121234567"
+                  href="tel:+905519453558"
                   className="text-sm text-slate-400 transition-colors hover:text-white"
                 >
-                  +90 (212) 123 45 67
+                  +90 (551) 945 35 58
                 </a>
               </li>
               <li className="flex items-start gap-3">
                 <MapPin className="mt-0.5 h-4 w-4 flex-shrink-0 text-slate-400" />
                 <span className="text-sm text-slate-400">
-                  Karşıyaka, İzmir, Türkiye
+                  Bahriye Üçok, Girne Blv No:122/B, Karşıyaka/İzmir
                 </span>
               </li>
             </ul>

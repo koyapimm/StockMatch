@@ -31,7 +31,7 @@ export default function ForgotPasswordPage() {
                 <div className="flex w-full flex-col bg-white lg:w-[40%]">
                     <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center px-4 py-8 sm:px-8 sm:py-12">
                         <Link href="/" className="mb-6 sm:mb-8">
-                            <Image src="/stockmatch_logo.jpeg" alt="StockMatch" width={160} height={45} className="h-10 w-auto sm:h-12" priority />
+                            <Image src="/logo.png" alt="StockMatch" width={160} height={45} className="h-10 w-auto sm:h-12" priority />
                         </Link>
 
                         <Link href="/login" className="mb-6 inline-flex items-center gap-2 text-sm text-slate-600 hover:text-slate-900">

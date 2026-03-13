@@ -179,7 +179,7 @@ export default function DashboardPage() {
         )}
 
         {/* Stats */}
-        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <div className="rounded-lg bg-white p-6 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-blue-100 p-3">
@@ -204,7 +204,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="rounded-lg bg-white p-6 shadow-sm">
+          {/* <div className="rounded-lg bg-white p-6 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="rounded-lg bg-orange-100 p-3">
                 <MessageSquare className="h-6 w-6 text-orange-600" />
@@ -219,7 +219,7 @@ export default function DashboardPage() {
                 </p>
               </div>
             </div>
-          </div>
+          </div> */}
 
           <div className="rounded-lg bg-white p-6 shadow-sm">
             <div className="flex items-center gap-3">
@@ -250,12 +250,12 @@ export default function DashboardPage() {
             >
               <Plus className="h-4 w-4" /> Yeni Ürün Ekle
             </Link>
-            <Link
+            {/* <Link
               href="/dashboard/requests"
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
             >
               <MessageSquare className="h-4 w-4" /> Taleplerim
-            </Link>
+            </Link> */}
             <Link
               href="/dashboard/company"
               className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
@@ -271,8 +271,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Recent Activity */}
-        <div className="grid gap-8 lg:grid-cols-3">
+        {/* Recent Activity lg:grid-cols-3 */ }
+        <div className="grid gap-8 ">
           <div className="rounded-lg bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">Son Ürünlerim</h2>
@@ -384,7 +384,7 @@ export default function DashboardPage() {
             )}
           </div>
 
-          <div className="rounded-lg bg-white p-6 shadow-sm">
+          {/* <div className="rounded-lg bg-white p-6 shadow-sm">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="text-lg font-semibold text-slate-900">Gelen Talepler</h2>
               {receivedRequests.length > 0 && (
@@ -508,7 +508,7 @@ export default function DashboardPage() {
                 })}
               </div>
             )}
-          </div>
+          </div> */}
         </div>
       </main>
 
